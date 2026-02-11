@@ -1,0 +1,174 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>实时变声器 - 主控台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v=20260212t">
+</head>
+<body>
+  <div class="bg-layer"></div>
+  <div class="app-shell">
+    <header class="topbar with-models">
+      <div>
+        <p class="eyebrow">LOCAL / QWEN3-TTS / REALTIME</p>
+        <h1>实时变声器</h1>
+      </div>
+      <nav class="nav-links" aria-label="Primary">
+        <a class="nav-link active" href="/">主控台</a>
+        <a class="nav-link" href="/voices">音色工作台</a>
+        <a class="nav-link" href="/settings">AI 配置</a>
+      </nav>
+      <div class="status-pills">
+        <span id="healthBadge" class="pill pill-warn">健康检查中</span>
+        <span id="wsBadge" class="pill">WS 未连接</span>
+      </div>
+      <div id="loadedModelsStrip" class="model-strip" aria-live="polite"></div>
+    </header>
+
+    <main class="main-grid">
+      <section class="card control-card">
+        <h2>实时控制</h2>
+        <p class="hint">设备、音色、开关与调音参数。</p>
+
+        <div class="field-grid">
+          <label>输入设备
+            <select id="inputDevice"></select>
+          </label>
+          <label>虚拟麦输出
+            <select id="virtualDevice"></select>
+          </label>
+          <label>监听输出
+            <select id="monitorDevice"></select>
+          </label>
+          <label>实时语言
+            <select id="rtLanguage">
+              <option value="Auto">自动</option>
+              <option value="Chinese" selected>中文</option>
+              <option value="English">英文</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="toggle-row">
+          <input id="monitorEnabled" type="checkbox">
+          <span>开启本地监听（默认关闭）</span>
+        </label>
+
+        <label>当前音色
+          <select id="voiceSelect"></select>
+        </label>
+
+        <div class="action-row">
+          <button id="btnRefreshVoices" class="btn">刷新音色</button>
+          <a class="btn ghost-link" href="/voices">打开音色工作台</a>
+        </div>
+
+        <div class="action-row">
+          <button id="btnApplySettings" class="btn">应用设置</button>
+          <button id="btnStart" class="btn btn-primary">启动实时</button>
+          <button id="btnStop" class="btn btn-danger">停止</button>
+        </div>
+
+        <div id="deviceNotice" class="notice hidden" role="status"></div>
+        <div id="rtError" class="form-error" role="alert"></div>
+
+        <div class="control-compact-grid">
+          <section class="tune-panel" aria-label="音频调节">
+            <h3>音频调节</h3>
+            <div class="range-row">
+              <span>输入增益</span>
+              <input id="inputGainDb" type="range" min="-18" max="18" step="0.5" value="0">
+              <strong id="inputGainDbText">0.0 dB</strong>
+            </div>
+            <div class="range-row">
+              <span>输出音量</span>
+              <input id="outputGainDb" type="range" min="-18" max="18" step="0.5" value="0">
+              <strong id="outputGainDbText">0.0 dB</strong>
+            </div>
+            <label class="toggle-row compact-toggle">
+              <input id="pttEnabled" type="checkbox" checked>
+              <span>按键说话 (PTT)</span>
+            </label>
+            <div class="ptt-row">
+              <button id="btnPttHold" class="btn ptt-hold" type="button">按住说话 (空格)</button>
+              <span id="pttStateLabel" class="inline-hint">待机</span>
+            </div>
+            <label class="toggle-row compact-toggle">
+              <input id="llmCorrectionEnabled" type="checkbox" checked>
+              <span>大模型纠错后再输出</span>
+            </label>
+            <label class="toggle-row compact-toggle">
+              <input id="denoiseEnabled" type="checkbox">
+              <span>开启输入降噪</span>
+            </label>
+            <div class="range-row">
+              <span>降噪强度</span>
+              <input id="denoiseStrength" type="range" min="0" max="1" step="0.05" value="0.35">
+              <strong id="denoiseStrengthText">35%</strong>
+            </div>
+            <label class="toggle-row compact-toggle">
+              <input id="ambienceEnabled" type="checkbox" checked>
+              <span>加入底噪质感</span>
+            </label>
+            <div class="range-row">
+              <span>底噪强度</span>
+              <input id="ambienceLevel" type="range" min="0" max="0.06" step="0.001" value="0.003">
+              <strong id="ambienceLevelText">0.30%</strong>
+            </div>
+          </section>
+
+          <section class="level-panel" aria-label="音量电平">
+            <h3>麦克风电平</h3>
+            <div class="level-row">
+              <span class="level-label">输入麦克风</span>
+              <div class="level-track" role="progressbar" aria-label="输入麦克风音量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="inputLevelFill" class="level-fill"></div>
+              </div>
+              <span id="inputLevelText" class="level-value">0%</span>
+            </div>
+            <div class="level-row">
+              <span class="level-label">输出麦克风</span>
+              <div class="level-track" role="progressbar" aria-label="输出麦克风音量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="outputLevelFill" class="level-fill"></div>
+              </div>
+              <span id="outputLevelText" class="level-value">0%</span>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="card state-card">
+        <h2>实时状态</h2>
+        <pre id="rtState" class="mono-box mono-grow"></pre>
+      </section>
+
+      <section class="card metrics-card">
+        <h2>时延与事件</h2>
+        <div class="status-pills compact">
+          <span id="gateFad" class="pill pill-warn">首包延迟 P95: 采样中</span>
+          <span id="gateE2E" class="pill pill-warn">全链路延迟 P95: 采样中</span>
+          <span id="metricSamples" class="pill">样本数: 0</span>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-tile"><span>首包延迟 P50</span><strong id="mP50Fad">0ms</strong></article>
+          <article class="metric-tile"><span>首包延迟 P95</span><strong id="mP95Fad">0ms</strong></article>
+          <article class="metric-tile"><span>全链路延迟 P50</span><strong id="mP50E2E">0ms</strong></article>
+          <article class="metric-tile"><span>全链路延迟 P95</span><strong id="mP95E2E">0ms</strong></article>
+          <article class="metric-tile"><span>识别耗时 (ASR)</span><strong id="mAsrMs">0ms</strong></article>
+          <article class="metric-tile"><span>合成耗时 (TTS)</span><strong id="mTtsMs">0ms</strong></article>
+        </div>
+
+        <pre id="eventLog" class="mono-box mono-grow"></pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/common.js?v=20260212o"></script>
+  <script src="/static/main.js?v=20260212t"></script>
+</body>
+</html>

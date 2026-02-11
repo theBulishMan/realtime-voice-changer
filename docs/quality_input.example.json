@@ -1,0 +1,12 @@
+[
+  {
+    "language": "zh",
+    "reference": "你好，欢迎使用实时变声器。",
+    "hypothesis": "你好，欢迎使用实时变声器。"
+  },
+  {
+    "language": "en",
+    "reference": "Hello and welcome to the realtime voice changer.",
+    "hypothesis": "Hello and welcome to the realtime voice changer."
+  }
+]

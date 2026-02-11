@@ -1,0 +1,47 @@
+.venv/
+.venv_broken_*/
+.env
+.env.*
+.envrc
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+data/*
+!data/.gitkeep
+!data/voices/.gitkeep
+!data/logs/.gitkeep
+
+reports/
+tmp/
+*.log
+*.wav
+*.mp3
+*.opus
+*.pcm
+
+# Local model/cache artifacts
+.cache/
+
+# Build/package artifacts
+build/
+dist/
+*.egg-info/
+
+# Local runtime/temporary files
+tmp_prompt_test*.pt
+*.tmp
+*.bak
+
+# Local credential/config snapshots
+*secret*.json
+*secrets*.json
+*credential*.json

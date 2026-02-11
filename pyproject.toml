@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "realtime-voice-changer"
+version = "0.1.0"
+description = "Local realtime voice changer built with Qwen3-TTS, Qwen3-ASR, FastAPI and WebSocket."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Realtime Voice Changer" }
+]
+dependencies = [
+  "fastapi>=0.115.0,<1.0.0",
+  "uvicorn[standard]>=0.30.0,<1.0.0",
+  "pydantic>=2.7.0,<3.0.0",
+  "python-multipart>=0.0.9,<1.0.0",
+  "numpy>=1.26.0,<3.0.0",
+  "scipy>=1.12.0,<2.0.0",
+  "soundfile>=0.12.1,<1.0.0",
+  "sounddevice>=0.4.6,<1.0.0",
+  "webrtcvad-wheels>=2.0.14,<3.0.0",
+  "qwen-asr>=0.0.6",
+  "modelscope>=1.34.0",
+  "faster-whisper>=1.1.0,<2.0.0",
+  "qwen-tts>=0.1.0",
+  "huggingface-hub>=0.34.0,<1.0.0",
+  "hf_xet>=1.1.8,<2.0.0",
+  "torch>=2.5.0",
+  "librosa>=0.10.2,<1.0.0"
+]
+
+[project.optional-dependencies]
+desktop = [
+  "pywebview>=5.0,<6.0",
+]
+packaging = [
+  "pyinstaller>=6.0,<7.0",
+]
+dev = [
+  "pytest>=8.3.0,<9.0.0",
+  "httpx>=0.27.0,<1.0.0",
+  "pytest-asyncio>=0.24.0,<1.0.0",
+  "mypy>=1.12.0,<2.0.0",
+  "ruff>=0.8.0,<1.0.0",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+check_untyped_defs = true

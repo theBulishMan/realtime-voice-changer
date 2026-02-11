@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>实时变声器 - AI 配置</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v=20260212s">
+</head>
+<body class="settings-page">
+  <div class="bg-layer"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">OPENAI COMPATIBLE SETTINGS</p>
+        <h1>AI 配置中心</h1>
+      </div>
+      <nav class="nav-links" aria-label="Primary">
+        <a class="nav-link" href="/">主控台</a>
+        <a class="nav-link" href="/voices">音色工作台</a>
+        <a class="nav-link active" href="/settings">AI 配置</a>
+      </nav>
+      <div class="status-pills">
+        <span id="healthBadge" class="pill pill-warn">健康检查中</span>
+      </div>
+    </header>
+
+    <main class="settings-grid">
+      <section class="card">
+        <h2>OpenAI 兼容模型配置</h2>
+        <p class="hint">这里只放 API 相关配置。音色编排和试听留在音色工作台。</p>
+        <div class="settings-form-grid">
+          <label>凭据名称
+            <input id="sfCredentialName" type="text" placeholder="API KEY 1">
+          </label>
+          <label>模型显示名称
+            <input id="sfModelDisplayName" type="text" placeholder="模型在界面的显示名称">
+          </label>
+          <label class="span-2">API Key（留空表示不修改）
+            <input id="sfApiKey" type="password" placeholder="在此输入你的 API Key">
+          </label>
+          <label>API endpoint URL
+            <input id="sfBase" type="text" placeholder="http://10.0.0.2:1234/v1">
+          </label>
+          <label>endpoint model name
+            <input id="sfModel" type="text" placeholder="endpoint model name, e.g. chatgpt4.0">
+          </label>
+          <label>兼容模式
+            <select id="sfCompatMode">
+              <option value="strict_openai">严格（OpenAI 兼容）</option>
+              <option value="siliconflow">扩展（含 enable_thinking）</option>
+            </select>
+          </label>
+          <label>纠错提供方
+            <select id="sfProvider">
+              <option value="siliconflow">远端 API（OpenAI 兼容）</option>
+              <option value="local">本地模型</option>
+            </select>
+          </label>
+          <label>模型上下文长度
+            <input id="sfContextLength" type="number" min="2048" max="262144" step="1" value="131072">
+          </label>
+          <label>最大 token 上限
+            <input id="sfMaxTokens" type="number" min="64" max="131072" step="1" value="4096">
+          </label>
+          <label>超时（秒）
+            <input id="sfTimeout" type="number" min="2" max="120" step="1" value="12">
+          </label>
+          <label class="toggle-row">
+            <input id="sfThinkingEnabled" type="checkbox">
+            <span>思考模式（仅扩展兼容模式可用）</span>
+          </label>
+        </div>
+
+        <div class="action-row">
+          <button id="btnSfReload" class="btn">读取配置</button>
+          <button id="btnSfClearKey" class="btn">清空已保存 Key</button>
+          <button id="btnSfSave" class="btn btn-primary">保存配置</button>
+        </div>
+        <p id="sfStatus" class="hint">AI 配置：未读取</p>
+        <div id="sfError" class="form-error" role="alert"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/common.js?v=20260212s"></script>
+  <script src="/static/settings.js?v=20260212s"></script>
+</body>
+</html>
