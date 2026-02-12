@@ -193,6 +193,26 @@ function getCurrentDesignSource() {
   return (RVC.byId("designSource")?.value || "design").trim();
 }
 
+function setWorkbenchPane(mode) {
+  const normalized = mode === "clone" ? "clone" : "design";
+  const paneDesign = RVC.byId("paneDesign");
+  const paneClone = RVC.byId("paneClone");
+  const tabDesign = RVC.byId("tabDesign");
+  const tabClone = RVC.byId("tabClone");
+
+  if (paneDesign) paneDesign.classList.toggle("hidden", normalized !== "design");
+  if (paneClone) paneClone.classList.toggle("hidden", normalized !== "clone");
+
+  if (tabDesign) {
+    tabDesign.classList.toggle("active", normalized === "design");
+    tabDesign.setAttribute("aria-selected", normalized === "design" ? "true" : "false");
+  }
+  if (tabClone) {
+    tabClone.classList.toggle("active", normalized === "clone");
+    tabClone.setAttribute("aria-selected", normalized === "clone" ? "true" : "false");
+  }
+}
+
 function toggleDesignSourceUI() {
   const source = getCurrentDesignSource();
   const isCustom = source === "custom";
@@ -482,6 +502,15 @@ async function refreshTopDevices() {
 }
 
 function wireVoiceActions() {
+  const tabDesign = RVC.byId("tabDesign");
+  if (tabDesign) {
+    tabDesign.addEventListener("click", () => setWorkbenchPane("design"));
+  }
+  const tabClone = RVC.byId("tabClone");
+  if (tabClone) {
+    tabClone.addEventListener("click", () => setWorkbenchPane("clone"));
+  }
+
   RVC.byId("designSource").addEventListener("change", () => {
     toggleDesignSourceUI();
   });
@@ -559,6 +588,7 @@ function wireVoiceActions() {
 }
 
 async function initVoicePage() {
+  setWorkbenchPane("design");
   applyDefaultVoiceWorkbenchTemplates();
   toggleDesignSourceUI();
   wireVoiceActions();

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260212v">
+  <link rel="stylesheet" href="/static/styles.css?v=20260212w">
 </head>
 <body class="voices-page">
   <div class="bg-layer"></div>
@@ -43,85 +43,91 @@
     </header>
 
     <main class="voice-grid">
-      <section class="card design-card">
-        <h2>编排并固化音色</h2>
-        <p class="hint">支持两种来源：文本设计（VoiceDesign）或官方预置音色（CustomVoice）。都可先试听再固化。</p>
-        <label>音色名称
-          <input id="designName" type="text" placeholder="例如: calm_anchor">
-        </label>
-        <label>来源模式
-          <select id="designSource">
-            <option value="design">文本设计（VoiceDesign）</option>
-            <option value="custom">官方预置音色（CustomVoice）</option>
-          </select>
-        </label>
-        <label>AI 编排需求（可选）
-          <textarea id="designAiBrief" rows="2" placeholder="例如：年轻女声，温柔但有力量，略微沙哑，适合直播聊天"></textarea>
-        </label>
-        <div class="action-row">
-          <button id="btnDesignAiCompose" class="btn">AI 生成描述与试听文本</button>
-          <a class="btn ghost-link" href="/settings">打开 AI 配置</a>
+      <section class="card workbench-card">
+        <h2>音色创建工作台</h2>
+        <p class="hint">单页固定布局，无需上下滚动。切换标签可在“编排固化”和“克隆音色”之间工作。</p>
+        <div class="workbench-tabs" role="tablist" aria-label="音色创建模式">
+          <button id="tabDesign" class="workbench-tab active" type="button" role="tab" aria-selected="true">编排并固化音色</button>
+          <button id="tabClone" class="workbench-tab" type="button" role="tab" aria-selected="false">克隆音色</button>
         </div>
-        <div id="designPromptGroup">
-          <label>音色描述
-            <textarea id="designPrompt" rows="4" placeholder="描述音色风格（可点下方按钮填充模板）"></textarea>
-          </label>
-          <div id="designPromptActions" class="action-row">
-            <button id="btnDesignFillPrompt" class="btn">填入通用描述模板</button>
-            <button id="btnDesignFillText" class="btn">填入默认试听文本</button>
-          </div>
-        </div>
-        <div id="customVoiceGroup" class="hidden">
-          <label>官方说话人
-            <select id="customSpeakerSelect"></select>
-          </label>
-          <label>语气指令（可选）
-            <textarea id="customInstruct" rows="2" placeholder="例如：用平静且坚定的语气说"></textarea>
-          </label>
-          <p class="hint">官方音色可直接编排，满意后固化为可复用音色进入实时链路。</p>
-          <div class="action-row">
-            <button id="btnRefreshCustomCatalog" class="btn">刷新官方音色</button>
-            <button id="btnCustomFillText" class="btn">填入默认试听文本</button>
-          </div>
-        </div>
-        <label>试听文本
-          <textarea id="designText" rows="3" placeholder="留空会自动使用默认长试听文本"></textarea>
-        </label>
-        <label>语言
-          <select id="designLang">
-            <option value="Auto">自动</option>
-            <option value="Chinese">中文</option>
-            <option value="English">英文</option>
-          </select>
-        </label>
-        <div class="action-row">
-          <button id="btnDesignPreview" class="btn">仅试听（不保存）</button>
-          <button id="btnDesignCreate" class="btn btn-primary">试听满意后固化音色</button>
-        </div>
-        <div id="designError" class="form-error" role="alert"></div>
-      </section>
 
-      <section class="card clone-card">
-        <h2>克隆音色</h2>
-        <label>音色名称
-          <input id="cloneName" type="text" placeholder="例如: host_clone">
-        </label>
-        <label>参考文本
-          <textarea id="cloneText" rows="3" placeholder="与参考音频对应的文本"></textarea>
-        </label>
-        <label>参考音频
-          <input id="cloneFile" type="file" accept=".wav,.mp3,.m4a,audio/*">
-        </label>
-        <p class="hint">支持格式: WAV/MP3/M4A，最大 10MB，建议时长 3-60 秒。</p>
-        <label>语言
-          <select id="cloneLang">
-            <option value="Auto">自动</option>
-            <option value="Chinese">中文</option>
-            <option value="English">英文</option>
-          </select>
-        </label>
-        <button id="btnCloneCreate" class="btn btn-primary">创建并保存克隆</button>
-        <div id="cloneError" class="form-error" role="alert"></div>
+        <div id="paneDesign" class="workbench-pane">
+          <label>音色名称
+            <input id="designName" type="text" placeholder="例如: calm_anchor">
+          </label>
+          <label>来源模式
+            <select id="designSource">
+              <option value="design">文本设计（VoiceDesign）</option>
+              <option value="custom">官方预置音色（CustomVoice）</option>
+            </select>
+          </label>
+          <label>AI 编排需求（可选）
+            <textarea id="designAiBrief" rows="2" placeholder="例如：年轻女声，温柔但有力量，略微沙哑，适合直播聊天"></textarea>
+          </label>
+          <div class="action-row">
+            <button id="btnDesignAiCompose" class="btn">AI 生成描述与试听文本</button>
+            <a class="btn ghost-link" href="/settings">打开 AI 配置</a>
+          </div>
+          <div id="designPromptGroup">
+            <label>音色描述
+              <textarea id="designPrompt" rows="3" placeholder="描述音色风格（可点下方按钮填充模板）"></textarea>
+            </label>
+            <div id="designPromptActions" class="action-row">
+              <button id="btnDesignFillPrompt" class="btn">填入通用描述模板</button>
+              <button id="btnDesignFillText" class="btn">填入默认试听文本</button>
+            </div>
+          </div>
+          <div id="customVoiceGroup" class="hidden">
+            <label>官方说话人
+              <select id="customSpeakerSelect"></select>
+            </label>
+            <label>语气指令（可选）
+              <textarea id="customInstruct" rows="2" placeholder="例如：用平静且坚定的语气说"></textarea>
+            </label>
+            <p class="hint">官方音色可直接编排，满意后固化为可复用音色进入实时链路。</p>
+            <div class="action-row">
+              <button id="btnRefreshCustomCatalog" class="btn">刷新官方音色</button>
+              <button id="btnCustomFillText" class="btn">填入默认试听文本</button>
+            </div>
+          </div>
+          <label>试听文本
+            <textarea id="designText" rows="2" placeholder="留空会自动使用默认长试听文本"></textarea>
+          </label>
+          <label>语言
+            <select id="designLang">
+              <option value="Auto">自动</option>
+              <option value="Chinese">中文</option>
+              <option value="English">英文</option>
+            </select>
+          </label>
+          <div class="action-row">
+            <button id="btnDesignPreview" class="btn">仅试听（不保存）</button>
+            <button id="btnDesignCreate" class="btn btn-primary">试听满意后固化音色</button>
+          </div>
+          <div id="designError" class="form-error" role="alert"></div>
+        </div>
+
+        <div id="paneClone" class="workbench-pane hidden">
+          <label>音色名称
+            <input id="cloneName" type="text" placeholder="例如: host_clone">
+          </label>
+          <label>参考文本
+            <textarea id="cloneText" rows="2" placeholder="与参考音频对应的文本"></textarea>
+          </label>
+          <label>参考音频
+            <input id="cloneFile" type="file" accept=".wav,.mp3,.m4a,audio/*">
+          </label>
+          <p class="hint">支持格式: WAV/MP3/M4A，最大 10MB，建议时长 3-60 秒。</p>
+          <label>语言
+            <select id="cloneLang">
+              <option value="Auto">自动</option>
+              <option value="Chinese">中文</option>
+              <option value="English">英文</option>
+            </select>
+          </label>
+          <button id="btnCloneCreate" class="btn btn-primary">创建并保存克隆</button>
+          <div id="cloneError" class="form-error" role="alert"></div>
+        </div>
       </section>
 
       <section class="card preview-card">
@@ -147,6 +153,6 @@
     </main>
   </div>
   <script src="/static/common.js?v=20260212p"></script>
-  <script src="/static/voices.js?v=20260212t"></script>
+  <script src="/static/voices.js?v=20260212u"></script>
 </body>
 </html>
