@@ -25,6 +25,8 @@ from app.backend.services.text_corrector import TextCorrector
 from app.backend.services.tts_manager import TTSManager
 from app.backend.services.voice_service import VoiceService
 from app.backend.types import (
+    CustomVoiceAssistRequest,
+    CustomVoiceAssistResponse,
     CustomVoiceRequest,
     DesignVoiceRequest,
     HealthResponse,
@@ -628,6 +630,16 @@ async def assist_design_prompt(req: VoiceDesignAssistRequest):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to assist voice design: {exc}") from exc
+
+
+@app.post("/api/v1/voices/custom/assist", response_model=CustomVoiceAssistResponse)
+async def assist_custom_voice_prompt(req: CustomVoiceAssistRequest):
+    try:
+        return await run_in_threadpool(voice_service.assist_custom_voice_prompt, req)
+    except ClientInputError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to assist custom voice: {exc}") from exc
 
 
 @app.post("/api/v1/voices/custom")

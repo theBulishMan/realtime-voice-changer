@@ -96,6 +96,7 @@ function applyDefaultVoiceWorkbenchTemplates() {
 async function aiComposeDesignPrompt() {
   const briefEl = RVC.byId("designAiBrief");
   const langEl = RVC.byId("designLang");
+  const source = getCurrentDesignSource();
   const brief = String(briefEl?.value || "").trim();
   const language = String(langEl?.value || "Auto");
   if (!brief) {
@@ -104,6 +105,23 @@ async function aiComposeDesignPrompt() {
     throw new Error(message);
   }
   RVC.setFormError("designError", "");
+  if (source === "custom") {
+    const speaker = String(RVC.byId("customSpeakerSelect")?.value || "").trim();
+    const data = await RVC.api("/api/v1/voices/custom/assist", {
+      method: "POST",
+      body: JSON.stringify({ brief, language, speaker }),
+    });
+    if (RVC.byId("customInstruct") && data.instruct) {
+      RVC.byId("customInstruct").value = data.instruct;
+    }
+    if (RVC.byId("designText") && data.preview_text) {
+      RVC.byId("designText").value = data.preview_text;
+    }
+    const resultSource = data.source === "siliconflow" ? "硅基流动" : "本地回退";
+    RVC.logToBox("eventLog", `AI 已生成语气指令（来源=${resultSource}，模型=${data.model || "-" }）。`);
+    return;
+  }
+
   const data = await RVC.api("/api/v1/voices/design/assist", {
     method: "POST",
     body: JSON.stringify({ brief, language }),
@@ -114,8 +132,8 @@ async function aiComposeDesignPrompt() {
   if (RVC.byId("designText") && data.preview_text) {
     RVC.byId("designText").value = data.preview_text;
   }
-  const source = data.source === "siliconflow" ? "硅基流动" : "本地回退";
-  RVC.logToBox("eventLog", `AI 编排已生成（来源=${source}，模型=${data.model || "-" }）。`);
+  const resultSource = data.source === "siliconflow" ? "硅基流动" : "本地回退";
+  RVC.logToBox("eventLog", `AI 编排已生成（来源=${resultSource}，模型=${data.model || "-" }）。`);
 }
 
 function languageLabel(language) {
@@ -187,6 +205,10 @@ function toggleDesignSourceUI() {
   }
   if (customGroup) {
     customGroup.classList.toggle("hidden", !isCustom);
+  }
+  const aiBtn = RVC.byId("btnDesignAiCompose");
+  if (aiBtn) {
+    aiBtn.textContent = isCustom ? "AI 生成语气指令与试听文本" : "AI 生成描述与试听文本";
   }
 }
 

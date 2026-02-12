@@ -12,6 +12,8 @@ from app.backend.config import AppConfig
 from app.backend.db import AppDatabase
 from app.backend.errors import ClientInputError
 from app.backend.types import (
+    CustomVoiceAssistRequest,
+    CustomVoiceAssistResponse,
     CustomVoiceCatalogResponse,
     CustomVoiceRequest,
     CustomVoiceSpeaker,
@@ -133,6 +135,78 @@ class VoiceService:
             )
         except Exception:
             return self._assist_prompt_fallback(req)
+
+    def _assist_custom_voice_fallback(
+        self, req: CustomVoiceAssistRequest
+    ) -> CustomVoiceAssistResponse:
+        brief = " ".join(str(req.brief or "").split()).strip()
+        speaker = " ".join(str(req.speaker or "").split()).strip()
+        speaker_hint = f"面向说话人 {speaker}，" if speaker else ""
+        instruct = (
+            f"{speaker_hint}语速中等，咬字清晰，情绪自然稳定，"
+            f"重点风格：{brief}。避免机械感、过度夸张和电音感。"
+        )
+        return CustomVoiceAssistResponse(
+            instruct=instruct[:1000],
+            preview_text=self._DEFAULT_PREVIEW_TEXT,
+            model="",
+            source="fallback",
+        )
+
+    def assist_custom_voice_prompt(
+        self, req: CustomVoiceAssistRequest
+    ) -> CustomVoiceAssistResponse:
+        if not self.siliconflow.available():
+            return self._assist_custom_voice_fallback(req)
+        brief = " ".join(str(req.brief or "").split()).strip()
+        language = str(req.language or "Auto").strip() or "Auto"
+        speaker = " ".join(str(req.speaker or "").split()).strip()
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "你是 TTS 官方预置音色编排助手。"
+                    "请根据用户需求输出两个字段：instruct 和 preview_text。"
+                    "输出必须是 JSON，不要额外解释。"
+                    "instruct 用于模型语气指令，长度 10-120 字；"
+                    "preview_text 用于试听，长度 80-180 字。"
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"语言提示: {language}\n"
+                    f"官方说话人: {speaker or 'Auto'}\n"
+                    f"用户期望: {brief}\n"
+                    '请输出 JSON: {"instruct":"...","preview_text":"..."}'
+                ),
+            },
+        ]
+        try:
+            raw = self.siliconflow.chat(
+                messages=messages,
+                max_tokens=260,
+                temperature=0.35,
+                top_p=0.8,
+            )
+            cleaned = str(raw or "").strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.strip("`").strip()
+                if cleaned.lower().startswith("json"):
+                    cleaned = cleaned[4:].strip()
+            parsed = json.loads(cleaned)
+            instruct = " ".join(str(parsed.get("instruct", "")).split()).strip()
+            preview_text = " ".join(str(parsed.get("preview_text", "")).split()).strip()
+            if not instruct or not preview_text:
+                return self._assist_custom_voice_fallback(req)
+            return CustomVoiceAssistResponse(
+                instruct=instruct[:1000],
+                preview_text=preview_text[:1000],
+                model=str(self.config.siliconflow_model or ""),
+                source="siliconflow",
+            )
+        except Exception:
+            return self._assist_custom_voice_fallback(req)
 
     def _voice_dir(self, voice_id: str) -> Path:
         return self.config.voices_dir / voice_id

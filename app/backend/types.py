@@ -93,6 +93,19 @@ class VoiceDesignAssistResponse(BaseModel):
     source: Literal["siliconflow", "fallback"] = "fallback"
 
 
+class CustomVoiceAssistRequest(BaseModel):
+    brief: str = Field(min_length=1, max_length=512)
+    language: str = "Auto"
+    speaker: str | None = Field(default=None, max_length=64)
+
+
+class CustomVoiceAssistResponse(BaseModel):
+    instruct: str
+    preview_text: str
+    model: str = ""
+    source: Literal["siliconflow", "fallback"] = "fallback"
+
+
 class SiliconFlowSettingsResponse(BaseModel):
     text_correction_provider: Literal["local", "siliconflow"] = "local"
     siliconflow_api_base: str = "https://api.siliconflow.cn/v1"
