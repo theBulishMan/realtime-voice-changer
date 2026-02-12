@@ -62,9 +62,19 @@
     const ts = new Date().toLocaleTimeString();
     const incoming = `[${ts}] ${line}`;
     const current = box.textContent ? box.textContent.split("\n") : [];
-    const merged = [incoming, ...current].filter((item) => item.trim().length > 0).slice(0, maxLines);
+    const order = String(box.dataset.logOrder || "prepend").trim().toLowerCase();
+    let merged;
+    if (order === "append") {
+      merged = [...current, incoming]
+        .filter((item) => item.trim().length > 0)
+        .slice(-maxLines);
+    } else {
+      merged = [incoming, ...current]
+        .filter((item) => item.trim().length > 0)
+        .slice(0, maxLines);
+    }
     box.textContent = merged.join("\n");
-    box.scrollTop = 0;
+    box.scrollTop = order === "append" ? box.scrollHeight : 0;
   }
 
   function parseSuffix(filename) {

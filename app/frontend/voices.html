@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260212s">
+  <link rel="stylesheet" href="/static/styles.css?v=20260212v">
 </head>
-<body>
+<body class="voices-page">
   <div class="bg-layer"></div>
   <div class="app-shell">
     <header class="topbar with-devices with-models">
@@ -43,7 +43,7 @@
     </header>
 
     <main class="voice-grid">
-      <section class="card">
+      <section class="card design-card">
         <h2>编排并固化音色</h2>
         <p class="hint">支持两种来源：文本设计（VoiceDesign）或官方预置音色（CustomVoice）。都可先试听再固化。</p>
         <label>音色名称
@@ -101,7 +101,7 @@
         <div id="designError" class="form-error" role="alert"></div>
       </section>
 
-      <section class="card">
+      <section class="card clone-card">
         <h2>克隆音色</h2>
         <label>音色名称
           <input id="cloneName" type="text" placeholder="例如: host_clone">
@@ -146,7 +146,7 @@
       </section>
     </main>
   </div>
-  <script src="/static/common.js?v=20260212o"></script>
+  <script src="/static/common.js?v=20260212p"></script>
   <script src="/static/voices.js?v=20260212t"></script>
 </body>
 </html>
