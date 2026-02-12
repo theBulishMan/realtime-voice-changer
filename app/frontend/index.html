@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=20260212t">
+  <link rel="stylesheet" href="/static/styles.css?v=20260212u">
 </head>
 <body>
   <div class="bg-layer"></div>
@@ -24,6 +24,7 @@
       </nav>
       <div class="status-pills">
         <span id="healthBadge" class="pill pill-warn">健康检查中</span>
+        <span id="correctionBadge" class="pill">纠错来源: 检查中</span>
         <span id="wsBadge" class="pill">WS 未连接</span>
       </div>
       <div id="loadedModelsStrip" class="model-strip" aria-live="polite"></div>
@@ -95,6 +96,7 @@
             </label>
             <div class="ptt-row">
               <button id="btnPttHold" class="btn ptt-hold" type="button">按住说话 (空格)</button>
+              <button id="btnPttHotkey" class="btn ptt-hotkey-btn" type="button">改按键</button>
               <span id="pttStateLabel" class="inline-hint">待机</span>
             </div>
             <label class="toggle-row compact-toggle">
@@ -169,6 +171,6 @@
   </div>
 
   <script src="/static/common.js?v=20260212o"></script>
-  <script src="/static/main.js?v=20260212t"></script>
+  <script src="/static/main.js?v=20260212v"></script>
 </body>
 </html>

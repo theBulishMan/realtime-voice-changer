@@ -114,8 +114,17 @@ class TTSManager:
         os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "1200")
         os.environ.setdefault("HF_HUB_ETAG_TIMEOUT", "60")
         os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+        os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
         self._ensure_sox_path()
         self._configure_torch_runtime()
+        logging.getLogger("transformers.generation.configuration_utils").setLevel(logging.ERROR)
+        logging.getLogger("qwen_tts").setLevel(logging.WARNING)
+
+    @contextlib.contextmanager
+    def _suppress_third_party_output(self):
+        # qwen_tts emits non-critical startup text via print(); keep launcher output clean.
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            yield
 
     def _configure_torch_runtime(self) -> None:
         if not self.config.tts_gpu_turbo:
@@ -238,8 +247,7 @@ class TTSManager:
 
     def _load_model_with_fallback(self, model_id: str) -> Any:
         logging.getLogger("sox").setLevel(logging.ERROR)
-        with contextlib.redirect_stderr(io.StringIO()):
-            with contextlib.redirect_stdout(io.StringIO()):
+        with self._suppress_third_party_output():
                 from qwen_tts import Qwen3TTSModel
 
         kwargs: dict[str, Any] = {
@@ -251,7 +259,8 @@ class TTSManager:
             kwargs["attn_implementation"] = preferred
 
         try:
-            return Qwen3TTSModel.from_pretrained(model_id, **kwargs)
+            with self._suppress_third_party_output():
+                return Qwen3TTSModel.from_pretrained(model_id, **kwargs)
         except Exception as exc:
             if "attn_implementation" in kwargs:
                 failed_impl = str(kwargs.get("attn_implementation"))
@@ -265,7 +274,8 @@ class TTSManager:
                     exc,
                 )
                 try:
-                    return Qwen3TTSModel.from_pretrained(model_id, **fallback_kwargs)
+                    with self._suppress_third_party_output():
+                        return Qwen3TTSModel.from_pretrained(model_id, **fallback_kwargs)
                 except Exception as fallback_exc:
                     raise self._wrap_model_load_error(model_id, fallback_exc) from fallback_exc
             raise self._wrap_model_load_error(model_id, exc) from exc
@@ -428,12 +438,13 @@ class TTSManager:
         with self._lock:
             self._load_design_model()
             assert self._design_model is not None
-            wavs, sr = self._design_model.generate_voice_design(
-                text=preview_text,
-                instruct=voice_prompt,
-                language=language,
-                non_streaming_mode=True,
-            )
+            with self._suppress_third_party_output():
+                wavs, sr = self._design_model.generate_voice_design(
+                    text=preview_text,
+                    instruct=voice_prompt,
+                    language=language,
+                    non_streaming_mode=True,
+                )
         return wavs[0].astype(np.float32), int(sr)
 
     def get_custom_voice_catalog(self) -> tuple[list[dict[str, str]], list[str]]:
@@ -477,7 +488,8 @@ class TTSManager:
         with self._lock:
             self._load_custom_model()
             assert self._custom_model is not None
-            wavs, sr = self._custom_model.generate_custom_voice(**kwargs)
+            with self._suppress_third_party_output():
+                wavs, sr = self._custom_model.generate_custom_voice(**kwargs)
         return wavs[0].astype(np.float32), int(sr)
 
     def create_clone_prompt_from_audio(
@@ -496,11 +508,12 @@ class TTSManager:
         self._ensure_sox_available()
         model, model_lock = self._primary_base_model_slot()
         with model_lock:
-            prompt_items = model.create_voice_clone_prompt(
-                ref_audio=str(ref_audio_path),
-                ref_text=ref_text,
-                x_vector_only_mode=False,
-            )
+            with self._suppress_third_party_output():
+                prompt_items = model.create_voice_clone_prompt(
+                    ref_audio=str(ref_audio_path),
+                    ref_text=ref_text,
+                    x_vector_only_mode=False,
+                )
         self._apply_prompt_ref_text(prompt_items, ref_text)
         return prompt_items
 
@@ -520,11 +533,12 @@ class TTSManager:
         self._ensure_sox_available()
         model, model_lock = self._primary_base_model_slot()
         with model_lock:
-            prompt_items = model.create_voice_clone_prompt(
-                ref_audio=(wav, sr),
-                ref_text=ref_text,
-                x_vector_only_mode=False,
-            )
+            with self._suppress_third_party_output():
+                prompt_items = model.create_voice_clone_prompt(
+                    ref_audio=(wav, sr),
+                    ref_text=ref_text,
+                    x_vector_only_mode=False,
+                )
         self._apply_prompt_ref_text(prompt_items, ref_text)
         return prompt_items
 
@@ -543,13 +557,14 @@ class TTSManager:
         max_new_tokens = self._estimate_max_new_tokens(text)
         model, model_lock = self._pick_base_model_slot()
         with model_lock:
-            wavs, sr = model.generate_voice_clone(
-                text=text,
-                language=language,
-                voice_clone_prompt=prompt_items,
-                non_streaming_mode=self.config.tts_non_streaming_mode,
-                max_new_tokens=max_new_tokens,
-            )
+            with self._suppress_third_party_output():
+                wavs, sr = model.generate_voice_clone(
+                    text=text,
+                    language=language,
+                    voice_clone_prompt=prompt_items,
+                    non_streaming_mode=self.config.tts_non_streaming_mode,
+                    max_new_tokens=max_new_tokens,
+                )
         return wavs[0].astype(np.float32), int(sr)
 
     def synthesize_with_prompt_path(

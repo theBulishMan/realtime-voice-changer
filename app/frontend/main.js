@@ -18,6 +18,11 @@
   realtimeRunning: false,
   pttActive: false,
   pttPending: false,
+  pttBindingMode: false,
+  pttHotkeyCode: "Space",
+  correctionProvider: "siliconflow",
+  correctionApiKeyPresent: false,
+  correctionSettingsTs: 0,
   levelDecayTimer: null,
   settingsAutosaveTimer: null,
   settingsAutosaveInFlight: false,
@@ -26,6 +31,23 @@
 const AUDIO_LEVEL_DECAY_STEP = 0.04;
 const AUDIO_LEVEL_DECAY_MS = 120;
 const MODEL_STRIP_POLL_MS = 3500;
+const PTT_HOTKEY_STORAGE_KEY = "rvc.ptt_hotkey_code.v1";
+const PTT_DEFAULT_HOTKEY_CODE = "Space";
+const PTT_FORBIDDEN_HOTKEY_CODES = new Set([
+  "ShiftLeft",
+  "ShiftRight",
+  "ControlLeft",
+  "ControlRight",
+  "AltLeft",
+  "AltRight",
+  "MetaLeft",
+  "MetaRight",
+  "CapsLock",
+  "NumLock",
+  "ScrollLock",
+  "ContextMenu",
+]);
+const CORRECTION_SETTINGS_REFRESH_MS = 10000;
 let modelStripPollTimer = null;
 
 function toNumber(value, fallback = 0) {
@@ -115,12 +137,85 @@ function renderTuningLabels() {
   if (ambienceText) ambienceText.textContent = `${(Math.min(0.06, Math.max(0, ambience)) * 100).toFixed(2)}%`;
 }
 
+function hotkeyLabel(code) {
+  const raw = String(code || "").trim();
+  if (!raw) return "空格";
+  if (raw === "Space") return "空格";
+  if (raw === "Escape") return "Esc";
+  if (raw.startsWith("Key")) return raw.slice(3).toUpperCase();
+  if (raw.startsWith("Digit")) return raw.slice(5);
+  if (raw.startsWith("Numpad")) return `小键盘 ${raw.slice(6)}`;
+  if (raw.startsWith("Arrow")) {
+    const arrow = raw.slice(5);
+    const map = {
+      Up: "↑",
+      Down: "↓",
+      Left: "←",
+      Right: "→",
+    };
+    return map[arrow] || raw;
+  }
+  if (raw === "Backquote") return "`";
+  if (raw === "Minus") return "-";
+  if (raw === "Equal") return "=";
+  if (raw === "BracketLeft") return "[";
+  if (raw === "BracketRight") return "]";
+  if (raw === "Semicolon") return ";";
+  if (raw === "Quote") return "'";
+  if (raw === "Comma") return ",";
+  if (raw === "Period") return ".";
+  if (raw === "Slash") return "/";
+  if (raw === "Backslash") return "\\";
+  return raw;
+}
+
+function normalizeHotkeyCode(raw) {
+  const code = String(raw || "").trim();
+  if (!code) return PTT_DEFAULT_HOTKEY_CODE;
+  if (PTT_FORBIDDEN_HOTKEY_CODES.has(code)) return "";
+  return code;
+}
+
+function loadStoredPttHotkey() {
+  try {
+    const saved = window.localStorage.getItem(PTT_HOTKEY_STORAGE_KEY);
+    const normalized = normalizeHotkeyCode(saved);
+    controlState.pttHotkeyCode = normalized || PTT_DEFAULT_HOTKEY_CODE;
+  } catch (_err) {
+    controlState.pttHotkeyCode = PTT_DEFAULT_HOTKEY_CODE;
+  }
+}
+
+function saveStoredPttHotkey(code) {
+  try {
+    window.localStorage.setItem(PTT_HOTKEY_STORAGE_KEY, String(code || PTT_DEFAULT_HOTKEY_CODE));
+  } catch (_err) {
+    // Ignore storage errors (private mode / policy).
+  }
+}
+
+function renderPttHotkeyUi() {
+  const holdBtn = RVC.byId("btnPttHold");
+  const hotkeyBtn = RVC.byId("btnPttHotkey");
+  const label = hotkeyLabel(controlState.pttHotkeyCode);
+  if (holdBtn) {
+    holdBtn.textContent = controlState.pttBindingMode
+      ? "请按下新的按键..."
+      : `按住说话 (${label})`;
+  }
+  if (hotkeyBtn) {
+    hotkeyBtn.textContent = controlState.pttBindingMode ? "取消设置" : "改按键";
+    hotkeyBtn.classList.toggle("active", controlState.pttBindingMode);
+  }
+}
+
 function syncPttUiState() {
   const holdBtn = RVC.byId("btnPttHold");
   const label = RVC.byId("pttStateLabel");
   const enabled = Boolean(controlState.currentSettings.ptt_enabled);
   const running = Boolean(controlState.realtimeRunning);
   const active = Boolean(controlState.pttActive);
+  renderPttHotkeyUi();
 
   if (holdBtn) {
     holdBtn.disabled = !enabled || !running || controlState.pttPending;
@@ -191,7 +286,7 @@ async function setPttActive(active, options = {}) {
 async function refreshLoadedModels(options = {}) {
   const silent = Boolean(options.silent);
   try {
-    await RVC.loadLoadedModels({
+    const loadedData = await RVC.loadLoadedModels({
       containerId: "loadedModelsStrip",
       logBoxId: "eventLog",
       errorId: "rtError",
@@ -199,6 +294,10 @@ async function refreshLoadedModels(options = {}) {
       onUnloaded: () => {
         RVC.loadHealth("healthBadge").catch(() => {});
       },
+    });
+    await refreshCorrectionBadge({
+      loadedModelsData: loadedData,
+      forceSettings: Boolean(options.forceSettings),
     });
   } catch (err) {
     if (!silent) {
@@ -218,6 +317,66 @@ function stopLoadedModelsPolling() {
   if (modelStripPollTimer == null) return;
   window.clearInterval(modelStripPollTimer);
   modelStripPollTimer = null;
+}
+
+function _getTextCorrectorLoadedModel(models) {
+  if (!Array.isArray(models)) return null;
+  return models.find((item) => String(item?.key || "").trim() === "text_corrector") || null;
+}
+
+function renderCorrectionBadge(models = RVC.state.loadedModels) {
+  const badge = RVC.byId("correctionBadge");
+  if (!badge) return;
+
+  const correctionEnabled = Boolean(controlState.currentSettings.llm_correction_enabled);
+  if (!correctionEnabled) {
+    RVC.setBadge(badge, "纠错来源: 已关闭", true);
+    return;
+  }
+
+  const provider = String(controlState.correctionProvider || "local").toLowerCase();
+  const loaded = _getTextCorrectorLoadedModel(models);
+  const loadedDevice = String(loaded?.device || "").trim().toLowerCase();
+
+  if (provider === "siliconflow") {
+    if (loaded && loadedDevice === "remote") {
+      RVC.setBadge(badge, `纠错来源: 远端大模型 (${loaded.label || "OpenAI 兼容"})`, true);
+      return;
+    }
+    if (!controlState.correctionApiKeyPresent) {
+      RVC.setBadge(badge, "纠错来源: 回退规则（未配置 API Key）", false);
+      return;
+    }
+    RVC.setBadge(badge, "纠错来源: 远端大模型（待调用）", true);
+    return;
+  }
+
+  if (loaded && loadedDevice !== "remote") {
+    RVC.setBadge(badge, `纠错来源: 本地大模型 (${loaded.device || "local"})`, true);
+    return;
+  }
+  RVC.setBadge(badge, "纠错来源: 本地大模型（待加载/可能回退）", false);
+}
+
+async function refreshCorrectionBadge(options = {}) {
+  const forceSettings = Boolean(options.forceSettings);
+  const now = Date.now();
+  const expired = now - Number(controlState.correctionSettingsTs || 0) >= CORRECTION_SETTINGS_REFRESH_MS;
+  if (forceSettings || expired || !controlState.correctionSettingsTs) {
+    try {
+      const sf = await RVC.api("/api/v1/settings/siliconflow");
+      controlState.correctionProvider = String(sf.text_correction_provider || "local");
+      controlState.correctionApiKeyPresent = Boolean(sf.api_key_present);
+      controlState.correctionSettingsTs = now;
+    } catch (_err) {
+      // Keep previous status when settings endpoint is temporarily unavailable.
+    }
+  }
+  const loadedModelsData = options.loadedModelsData;
+  const models = Array.isArray(loadedModelsData?.models)
+    ? loadedModelsData.models
+    : RVC.state.loadedModels;
+  renderCorrectionBadge(models);
 }
 
 function syncTuningControlsFromSettings() {
@@ -248,6 +407,7 @@ function syncTuningControlsFromSettings() {
   }
   renderTuningLabels();
   syncPttUiState();
+  renderCorrectionBadge();
 }
 
 function syncTuningSettingsFromControls() {
@@ -384,6 +544,7 @@ async function applySettings(options = {}) {
   controlState.realtimeRunning = Boolean(state.running);
   controlState.pttActive = Boolean(state.ptt_active);
   syncTuningControlsFromSettings();
+  renderCorrectionBadge();
 
   if (!options.silent) {
     RVC.logToBox("eventLog", "实时设置已更新。")
@@ -522,6 +683,7 @@ function wireControlActions() {
     if (!el) return;
     el.addEventListener("change", () => {
       syncTuningSettingsFromControls();
+      renderCorrectionBadge();
       scheduleSettingsAutosave();
     });
   });
@@ -549,20 +711,60 @@ function wireControlActions() {
     pttBtn.addEventListener("pointerleave", release);
     pttBtn.addEventListener("pointercancel", release);
   }
+  const pttHotkeyBtn = RVC.byId("btnPttHotkey");
+  if (pttHotkeyBtn) {
+    pttHotkeyBtn.addEventListener("click", (evt) => {
+      evt.preventDefault();
+      controlState.pttBindingMode = !controlState.pttBindingMode;
+      renderPttHotkeyUi();
+      if (controlState.pttBindingMode) {
+        RVC.logToBox("eventLog", "PTT 按键设置中：请按下你要用的按键，按 Esc 取消。");
+      } else {
+        RVC.logToBox("eventLog", "PTT 按键设置已取消。");
+      }
+    });
+  }
 
   window.addEventListener("keydown", (evt) => {
-    if (evt.code !== "Space" || evt.repeat) return;
+    if (controlState.pttBindingMode) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      if (evt.code === "Escape") {
+        controlState.pttBindingMode = false;
+        renderPttHotkeyUi();
+        RVC.logToBox("eventLog", "PTT 按键设置已取消。");
+        return;
+      }
+      const nextCode = normalizeHotkeyCode(evt.code);
+      if (!nextCode) {
+        RVC.logToBox("eventLog", `PTT 按键无效：${evt.code}。请使用普通按键。`);
+        return;
+      }
+      controlState.pttHotkeyCode = nextCode;
+      controlState.pttBindingMode = false;
+      saveStoredPttHotkey(nextCode);
+      renderPttHotkeyUi();
+      RVC.logToBox("eventLog", `PTT 按键已切换为：${hotkeyLabel(nextCode)}。`);
+      return;
+    }
+
+    if (evt.code !== controlState.pttHotkeyCode || evt.repeat) return;
     if (isEditableElement(evt.target)) return;
     evt.preventDefault();
     setPttActive(true).catch(() => {});
   });
   window.addEventListener("keyup", (evt) => {
-    if (evt.code !== "Space") return;
+    if (controlState.pttBindingMode) return;
+    if (evt.code !== controlState.pttHotkeyCode) return;
     if (isEditableElement(evt.target)) return;
     evt.preventDefault();
     setPttActive(false).catch(() => {});
   });
   window.addEventListener("blur", () => {
+    if (controlState.pttBindingMode) {
+      controlState.pttBindingMode = false;
+      renderPttHotkeyUi();
+    }
     setPttActive(false).catch(() => {});
   });
 
@@ -613,10 +815,12 @@ function wireRealtimeWs() {
 }
 
 async function initControlPage() {
+  loadStoredPttHotkey();
   wireControlActions();
   wireRealtimeWs();
   resetAudioLevels();
   renderTuningLabels();
+  renderPttHotkeyUi();
   syncPttUiState();
   startAudioLevelDecay();
   startLoadedModelsPolling();
@@ -628,6 +832,8 @@ async function initControlPage() {
     stopLoadedModelsPolling();
   });
   await loadAllControlData();
+  await refreshCorrectionBadge({ forceSettings: true });
+  await refreshLoadedModels({ silent: true, forceSettings: false });
 }
 
 initControlPage().catch((err) => {
