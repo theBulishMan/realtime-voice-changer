@@ -1317,7 +1317,6 @@ class RealtimeEngine:
                         f"device={dev_id}, using={out_rate}, tried={candidates}"
                     )
                     logger.warning(msg)
-                    self._emit("notice", {"message": msg})
             except Exception as exc:
                 msg = f"output stream unavailable on device={dev_id}: {exc}"
                 logger.warning(msg)
@@ -1807,7 +1806,7 @@ class RealtimeEngine:
             self._last_low_info_text = text_key
             self._last_low_info_ts = time.perf_counter()
             if suppress_low_info:
-                self._emit("notice", {"message": f"ASR low-info text suppressed: {normalized_text}"})
+                logger.info("ASR low-info text suppressed: %s", normalized_text)
                 return
         now = time.perf_counter()
         if (
@@ -1965,7 +1964,10 @@ class RealtimeEngine:
             return
         if session_id is not None and not self._session_active(session_id):
             return
-        preferred_out_sr = sample_rate if sample_rate > 0 else self.config.tts_sample_rate
+        configured_sr = max(1, int(self.config.tts_sample_rate))
+        preferred_out_sr = self._output_sample_rate or configured_sr
+        if preferred_out_sr <= 0:
+            preferred_out_sr = sample_rate if sample_rate > 0 else 48000
         self._ensure_output_streams(preferred_out_sr)
         if not self._output_streams:
             return

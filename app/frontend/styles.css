@@ -324,6 +324,7 @@ body.voices-page .voice-grid {
   min-height: 0;
   height: 100%;
   align-items: stretch;
+  gap: 8px;
   grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
 }
@@ -405,6 +406,74 @@ body.voices-page .card {
 
 body.voices-page .card {
   overflow: visible;
+}
+
+body.voices-page .workbench-card,
+body.voices-page .preview-card {
+  gap: 5px;
+  padding: 8px;
+}
+
+body.voices-page h2 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+
+body.voices-page h3 {
+  margin: 6px 0 4px;
+  font-size: 12px;
+}
+
+body.voices-page label {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+body.voices-page .hint {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+body.voices-page input,
+body.voices-page textarea,
+body.voices-page select {
+  margin-top: 2px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+body.voices-page textarea {
+  line-height: 1.26;
+}
+
+body.voices-page .btn {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+body.voices-page .action-row {
+  gap: 4px;
+}
+
+body.voices-page .workbench-tabs {
+  gap: 4px;
+  margin-bottom: 1px;
+}
+
+body.voices-page .workbench-tab {
+  border-radius: 7px;
+  font-size: 11px;
+  padding: 5px 6px;
+}
+
+body.voices-page .workbench-pane {
+  gap: 4px;
+}
+
+body.voices-page .mono-box {
+  padding: 7px;
+  font-size: 10px;
 }
 
 .hint {

@@ -28,6 +28,19 @@ let customCatalog = {
   speakers: [...FALLBACK_CUSTOM_SPEAKERS],
   languages: [...FALLBACK_CUSTOM_LANGUAGES],
 };
+let latestPreviewCache = {
+  key: "",
+  endpoint: "",
+  signature: "",
+};
+
+function clearPreviewCache() {
+  latestPreviewCache = { key: "", endpoint: "", signature: "" };
+}
+
+function buildDesignPayloadSignature(endpoint, payload) {
+  return `${String(endpoint || "").trim()}|${JSON.stringify(payload || {})}`;
+}
 
 async function refreshLoadedModels(options = {}) {
   const silent = Boolean(options.silent);
@@ -354,18 +367,43 @@ async function createDesignVoice(save) {
   }
   RVC.setFormError("designError", "");
 
+  const signature = buildDesignPayloadSignature(check.endpoint, check.payload);
+  const body = { ...check.payload, save };
+  if (
+    save &&
+    latestPreviewCache.key &&
+    latestPreviewCache.endpoint === check.endpoint &&
+    latestPreviewCache.signature === signature
+  ) {
+    body.preview_cache_key = latestPreviewCache.key;
+  }
+
   const data = await RVC.api(check.endpoint, {
     method: "POST",
-    body: JSON.stringify({ ...check.payload, save }),
+    body: JSON.stringify(body),
   });
 
   RVC.byId("audioPreview").src = `data:audio/wav;base64,${data.preview_audio_b64}`;
 
   if (save) {
+    clearPreviewCache();
     await RVC.loadVoices("voiceSelect");
     RVC.byId("voiceSelect").value = data.voice.id;
-    RVC.logToBox("eventLog", `音色已固化并保存: ${data.voice.name}（来源=${check.source}）`);
+    const reuseHint = data.preview_reused ? "，已复用上次试听结果" : "";
+    RVC.logToBox(
+      "eventLog",
+      `音色已固化并保存: ${data.voice.name}（来源=${check.source}${reuseHint}）`
+    );
   } else {
+    if (typeof data.preview_cache_key === "string" && data.preview_cache_key) {
+      latestPreviewCache = {
+        key: data.preview_cache_key,
+        endpoint: check.endpoint,
+        signature,
+      };
+    } else {
+      clearPreviewCache();
+    }
     RVC.logToBox("eventLog", `已生成试听，可直接固化保存（来源=${check.source}）。`);
   }
 }

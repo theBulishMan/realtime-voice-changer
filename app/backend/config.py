@@ -187,7 +187,7 @@ class AppConfig:
             asr_device=os.getenv("RVC_ASR_DEVICE", "cuda"),
             asr_compute_type=os.getenv("RVC_ASR_COMPUTE_TYPE", "float16"),
             capture_sample_rate=int(os.getenv("RVC_CAPTURE_SR", "16000")),
-            tts_sample_rate=int(os.getenv("RVC_TTS_SR", "24000")),
+            tts_sample_rate=int(os.getenv("RVC_TTS_SR", "48000")),
             frame_ms=int(os.getenv("RVC_FRAME_MS", "20")),
             max_segment_ms=int(os.getenv("RVC_MAX_SEGMENT_MS", "2800")),
             vad_silence_ms=int(os.getenv("RVC_VAD_SILENCE_MS", "140")),

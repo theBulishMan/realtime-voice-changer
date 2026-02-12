@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import pickle
 import warnings
 from pathlib import Path
@@ -65,7 +67,8 @@ def load_prompt_items(path: Path, *, ref_text_override: str | None = None) -> li
 
     try:
         # Lazy import to avoid hard-failing when qwen-tts is unavailable in fake mode.
-        from qwen_tts import VoiceClonePromptItem
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            from qwen_tts import VoiceClonePromptItem
     except Exception:
         VoiceClonePromptItem = None  # type: ignore[assignment]
 

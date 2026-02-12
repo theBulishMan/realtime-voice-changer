@@ -107,6 +107,14 @@ def _host_and_port(base_url: str) -> tuple[str, int]:
     return host, 80
 
 
+def _resolve_webview_gui() -> str | None:
+    raw = os.getenv("RVC_WEBVIEW_GUI", "auto").strip().lower()
+    if raw in {"", "auto", "default"}:
+        return None
+    allowed = {"edgechromium", "cef", "qt", "gtk", "mshtml"}
+    return raw if raw in allowed else None
+
+
 def _start_backend(base_url: str) -> BackendRuntime:
     host, port = _host_and_port(base_url)
     config = uvicorn.Config(
@@ -167,7 +175,11 @@ def launch_webview_shell(
         window.events.closed += lambda: setattr(runtime.server, "should_exit", True)
 
     try:
-        webview.start(gui="edgechromium", debug=False)
+        gui = _resolve_webview_gui()
+        if gui:
+            webview.start(gui=gui, debug=False)
+        else:
+            webview.start(debug=False)
     finally:
         if owns_backend and runtime is not None:
             runtime.server.should_exit = True

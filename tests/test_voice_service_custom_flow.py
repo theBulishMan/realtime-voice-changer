@@ -69,3 +69,37 @@ def test_custom_voice_rejects_invalid_speaker(tmp_path: Path, monkeypatch):
     )
     with pytest.raises(ClientInputError, match="Unsupported custom speaker"):
         svc.create_custom_voice(req)
+
+
+def test_custom_voice_save_reuses_preview_cache(tmp_path: Path, monkeypatch):
+    svc = _build_service(tmp_path, monkeypatch)
+    preview_req = CustomVoiceRequest(
+        name="custom-cache-preview",
+        speaker="Vivian",
+        preview_text="This is a preview-only custom voice flow.",
+        language="English",
+        instruct="Very energetic.",
+        save=False,
+    )
+    preview_result = svc.create_custom_voice(preview_req)
+    assert preview_result.preview_cache_key
+
+    def _should_not_run(*_args, **_kwargs):
+        raise RuntimeError("custom preview should be reused from cache")
+
+    svc.tts.generate_custom_voice_preview = _should_not_run  # type: ignore[assignment]
+
+    save_req = CustomVoiceRequest(
+        name="custom-cache-saved",
+        speaker="Vivian",
+        preview_text="This is a preview-only custom voice flow.",
+        language="English",
+        instruct="Very energetic.",
+        save=True,
+        preview_cache_key=preview_result.preview_cache_key,
+    )
+    save_result = svc.create_custom_voice(save_req)
+    assert save_result.preview_reused is True
+    assert save_result.preview_cache_key is None
+    voices = svc.list_voices()
+    assert len(voices) == 1

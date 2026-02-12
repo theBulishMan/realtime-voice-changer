@@ -17,6 +17,7 @@ set "RVC_TEXT_CORRECTION_MODEL_ID=%RVC_MODELS_DIR%\Qwen2.5-1.5B-Instruct"
 set "RVC_MODEL_PROVIDER=modelscope"
 set "RVC_TEXT_CORRECTION_PROVIDER=siliconflow"
 set "RVC_SILICONFLOW_MODEL=zai-org/GLM-4.5-Air"
+set "RVC_WEBVIEW_GUI=auto"
 
 :parse_args
 if "%~1"=="" goto after_args
@@ -40,10 +41,11 @@ if /i "%MODE%"=="real" (
   set "RVC_STARTUP_WARMUP=0"
   set "RVC_EMBED_BOOT_TIMEOUT_S=180"
   set "RVC_CAPTURE_SR=48000"
+  set "RVC_TTS_SR=48000"
   set "RVC_TTS_GPU_TURBO=1"
   set "RVC_TTS_FORCE_SDPA=1"
-  set "RVC_TTS_INFER_WORKERS=3"
-  set "RVC_TTS_MODEL_REPLICAS=3"
+  set "RVC_TTS_INFER_WORKERS=1"
+  set "RVC_TTS_MODEL_REPLICAS=1"
   set "RVC_TTS_NON_STREAMING_MODE=1"
   set "RVC_TTS_MAX_NEW_TOKENS_MIN=96"
   set "RVC_TTS_MAX_NEW_TOKENS_CAP=420"
@@ -58,7 +60,7 @@ if /i "%MODE%"=="real" (
   set "RVC_LLM_CORRECTION_ENABLED_DEFAULT=0"
   set "RVC_TEXT_CORRECTION_MAX_NEW_TOKENS=48"
   set "RVC_PORT=8788"
-  echo [Launcher] Mode: REAL ^(provider=%RVC_MODEL_PROVIDER%, gpu_turbo=on^)
+  echo [Launcher] Mode: REAL ^(provider=%RVC_MODEL_PROVIDER%, gpu_turbo=on, tts_concurrency=1x1^)
 ) else (
   set "RVC_FAKE_MODE=1"
   set "RVC_REQUIRE_GPU=0"

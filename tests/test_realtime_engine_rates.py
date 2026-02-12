@@ -826,7 +826,7 @@ def test_process_segment_suppresses_low_info_text(monkeypatch, tmp_path) -> None
     engine._process_segment(seg)
 
     assert tts.calls == 0
-    assert any(
+    assert not any(
         evt.type == "notice" and "low-info text suppressed" in str(evt.data.get("message", ""))
         for evt in events
     )

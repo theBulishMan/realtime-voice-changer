@@ -79,6 +79,7 @@ class DesignVoiceRequest(BaseModel):
     preview_text: str = Field(min_length=1, max_length=1024)
     language: str = "Auto"
     save: bool = True
+    preview_cache_key: str | None = Field(default=None, max_length=128)
 
 
 class VoiceDesignAssistRequest(BaseModel):
@@ -145,12 +146,15 @@ class CustomVoiceRequest(BaseModel):
     language: str = "Auto"
     instruct: str = Field(default="", max_length=1024)
     save: bool = True
+    preview_cache_key: str | None = Field(default=None, max_length=128)
 
 
 class VoiceCreateResponse(BaseModel):
     voice: VoiceProfileMeta
     preview_audio_b64: str
     sample_rate: int
+    preview_cache_key: str | None = None
+    preview_reused: bool = False
 
 
 class CustomVoiceSpeaker(BaseModel):

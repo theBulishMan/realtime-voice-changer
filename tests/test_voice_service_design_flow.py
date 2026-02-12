@@ -78,3 +78,35 @@ def test_design_preview_uses_runtime_clone_path(tmp_path: Path, monkeypatch):
 
     assert result.preview_audio_b64
     assert called["runtime_preview"] is True
+
+
+def test_design_save_reuses_preview_cache(tmp_path: Path, monkeypatch):
+    svc = _build_service(tmp_path, monkeypatch)
+    preview_req = DesignVoiceRequest(
+        name="design-cache-preview",
+        voice_prompt="warm and clear",
+        preview_text="hello world",
+        language="Auto",
+        save=False,
+    )
+    preview_result = svc.create_design_voice(preview_req)
+    assert preview_result.preview_cache_key
+
+    def _should_not_run(*_args, **_kwargs):
+        raise RuntimeError("design preview should be reused from cache")
+
+    svc.tts.generate_voice_design_preview = _should_not_run  # type: ignore[assignment]
+
+    save_req = DesignVoiceRequest(
+        name="design-cache-saved",
+        voice_prompt="warm and clear",
+        preview_text="hello world",
+        language="Auto",
+        save=True,
+        preview_cache_key=preview_result.preview_cache_key,
+    )
+    save_result = svc.create_design_voice(save_req)
+    assert save_result.preview_reused is True
+    assert save_result.preview_cache_key is None
+    voices = svc.list_voices()
+    assert len(voices) == 1

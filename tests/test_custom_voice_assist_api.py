@@ -31,6 +31,5 @@ def test_custom_voice_assist_fallback(monkeypatch, tmp_path):
         assert resp.status_code == 200
         payload = resp.json()
         assert payload["source"] == "fallback"
-        assert len(str(payload["instruct"])) > 8
+        assert len(str(payload["instruct"])) > 60
         assert len(str(payload["preview_text"])) > 10
-
